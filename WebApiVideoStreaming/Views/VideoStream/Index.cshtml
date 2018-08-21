@@ -10,7 +10,7 @@
     <h2>Videos</h2>
     <div>
         <h2>Upload Videos: </h2>
-        <form action="/api/videos/mediaupload" method="post" enctype="multipart/form-data">
+        <form id="uploadForm" action="/api/videos/mediaupload" method="post" enctype="multipart/form-data">
             <div class="form-group input-group">
                 <label class="input-group-btn">
                     <span class="btn btn-primary">
@@ -18,6 +18,12 @@
                     </span>
                 </label>
                 <input type="text" class="form-control" readonly>
+            </div>
+            <div class="progress progress-striped active">
+                <div class="progress-bar" role="progressbar" id="dvProgress"
+                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                     style="width: 0%">
+                </div>
             </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-success btn-lg">Subir</button>
