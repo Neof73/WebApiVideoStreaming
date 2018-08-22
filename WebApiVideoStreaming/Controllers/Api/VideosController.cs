@@ -14,12 +14,15 @@ using System.Web;
 using System.Web.Caching;
 using System.Web.Http;
 using WebApiVideoStreaming.Controllers.Api;
+using WebApiVideoStreaming.Models;
 
 namespace WebApiVideoStreaming.Controllers
 {
     public class VideosController : ApiController
     {
-        private static readonly ObjectCache cache = MemoryCache.Default;
+        //private static readonly ObjectCache cache = MemoryCache.Default;
+        private const int BlockSize = 1024 * 512;
+
         // GET api/values
         public HttpResponseMessage Get(string filename)
         {
@@ -56,47 +59,55 @@ namespace WebApiVideoStreaming.Controllers
 
         public async Task<HttpResponseMessage> GetStream(string name)
         {
-            var response = Request.CreateResponse();
-            response.Headers.AcceptRanges.Add("bytes");
+
 
             if (String.IsNullOrEmpty(name))
             {
-                return response;
+                return new HttpResponseMessage(){StatusCode = HttpStatusCode.BadRequest};
             }
 
-            byte[] videobytes;
-            if (cache[name] == null)
-            {
-                videobytes = await SqlStreamController.GetBinaryValue(name);
-                cache.Set(name, videobytes, DateTime.Now.AddMinutes(30));
-            } else
-            {
-                videobytes = cache[name] as byte[];
-            }
+            
+            //if (cache[name] == null)
+            //{
+            //    videobytes = await SqlStreamController.GetBinaryValue(name);
+            //    cache.Set(name, videobytes, DateTime.Now.AddMinutes(30));
+            //} else
+            //{
+            //    videobytes = cache[name] as byte[];
+            //}
 
-            if (videobytes == null)
-            {
-                return response;
-            }
-
-            MemoryStream stream = new MemoryStream(videobytes);
+            //if (videobytes == null)
+            //{
+            //    return response;
+            //}
+        
             RangeHeaderValue currentRangeHeader = Request.Headers.Range;
-
-            const int blockSize = 1024 * 512;
-            const string videoType = "video/mp4";
-            long totalLength = stream.Length;
             var range = currentRangeHeader.Ranges.First();
             var start = range.From ?? 0;
-            var ends = range.To ?? (start + blockSize - 1 > totalLength ? totalLength - 1 : start + blockSize - 1);
-            RangeHeaderValue rangeHeader = new RangeHeaderValue(start, ends);
-            response.Content = new ByteRangeStreamContent(stream, rangeHeader, videoType);
+
+            var video = await SqlStreamController.GetFileStream(name, new byte[BlockSize], start);
+            return video == null 
+                ? new HttpResponseMessage() { StatusCode = HttpStatusCode.BadRequest } 
+                : GetResponse(video);
+        }
+
+        private HttpResponseMessage GetResponse(Video video)
+        {
+            var response = Request.CreateResponse();
+            response.Headers.AcceptRanges.Add("bytes");
+            var totalLength = video.TotalLength;
+            const string videoType = "video/mp4";
+            var currentRangeHeader = Request.Headers.Range;
+            var range = currentRangeHeader.Ranges.First();
+            var start = range.From ?? 0;
+            var ends = range.To ?? (start + BlockSize - 1 > totalLength ? totalLength - 1 : start + BlockSize - 1);
+            response.Content = new ByteArrayContent(video.VideoBytes);
             response.Content.Headers.ContentLength = ends - start + 1;
             response.Content.Headers.ContentRange = new ContentRangeHeaderValue(start, ends, totalLength);
             response.Content.Headers.ContentType = new MediaTypeHeaderValue(videoType);
             response.StatusCode = HttpStatusCode.PartialContent;
             return response;
         }
-        
 
         [HttpPost]
         public async Task<HttpResponseMessage> MediaUpload()

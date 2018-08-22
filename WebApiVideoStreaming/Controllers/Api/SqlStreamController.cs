@@ -5,17 +5,22 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Data.SqlTypes;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Xml;
+
+using WebApiVideoStreaming.Models;
 
 namespace WebApiVideoStreaming.Controllers.Api
 {
     public class SqlStreamController : ApiController
     {
         private static string connectionString => ConfigurationManager.ConnectionStrings["Streaming"].ConnectionString;
+        private static string connectionStringFS => ConfigurationManager.ConnectionStrings["StreamingFS"].ConnectionString;
 
-       public static async Task<List<String>> GetVideoList()
+
+        public static async Task<List<String>> GetVideoList()
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
@@ -264,6 +269,98 @@ namespace WebApiVideoStreaming.Controllers.Api
                     }
                 }
             }
+        }
+
+        public static async Task<Video> GetFileStream(string name, byte[] buffer, long from)
+        {
+            SqlConnection sqlConnection = new SqlConnection(connectionStringFS);
+
+            SqlCommand sqlCommand = new SqlCommand { Connection = sqlConnection };
+
+            try
+            {
+                await sqlConnection.OpenAsync();
+
+                //The first task is to retrieve the file path
+                //of the SQL FILESTREAM BLOB that we want to
+                //access in the application.
+
+                sqlCommand.CommandText =
+                    "SELECT Stream.PathName()"
+                    + " FROM [Videos]"
+                    + " WHERE [Name] = '" + name + "'";
+
+                String filePath = null;
+
+                Object pathObj = await sqlCommand.ExecuteScalarAsync();
+                if (DBNull.Value != pathObj)
+                    filePath = (string)pathObj;
+                else
+                {
+                    throw new System.Exception(
+                        "Stream.PathName() failed"
+                        + " to read the path name "
+                        + " for the Stream column.");
+                }
+
+                //The next task is to obtain a transaction
+                //context. All FILESTREAM BLOB operations
+                //occur within a transaction context to
+                //maintain data consistency.
+
+                //All SQL FILESTREAM BLOB access must occur in 
+                //a transaction. MARS-enabled connections
+                //have specific rules for batch scoped transactions,
+                //which the Transact-SQL BEGIN TRANSACTION statement
+                //violates. To avoid this issue, client applications 
+                //should use appropriate API facilities for transaction management, 
+                //management, such as the SqlTransaction class.
+
+                SqlTransaction transaction = sqlConnection.BeginTransaction("mainTranaction");
+                sqlCommand.Transaction = transaction;
+
+                sqlCommand.CommandText =
+                    "SELECT GET_FILESTREAM_TRANSACTION_CONTEXT()";
+
+                Object obj = await sqlCommand.ExecuteScalarAsync();
+                byte[] txContext = (byte[])obj;
+
+                //The next step is to obtain a handle that
+                //can be passed to the Win32 FILE APIs.
+
+                SqlFileStream sqlFileStream = new SqlFileStream(filePath, txContext, FileAccess.Read);
+
+                int numBytes = 0;
+
+                sqlFileStream.Seek(from, SeekOrigin.Begin);
+                long totalBytes = sqlFileStream.Length;
+
+                numBytes = await sqlFileStream.ReadAsync(buffer, 0, buffer.Length);
+
+                if (numBytes != 0)
+                    Console.WriteLine("Total buffer read: " + numBytes);
+
+                //Because reading and writing are finished, FILESTREAM 
+                //must be closed. This closes the c# FileStream class, 
+                //but does not necessarily close the the underlying 
+                //FILESTREAM handle. 
+                sqlFileStream.Close();
+
+                //The final step is to commit or roll back the read and write
+                //operations that were performed on the FILESTREAM BLOB.
+
+                sqlCommand.Transaction.Commit();
+                return new Video(){ VideoBytes = buffer, TotalLength = totalBytes };
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            finally
+            {
+                sqlConnection.Close();
+            }
+            return null;
         }
     }
 }
