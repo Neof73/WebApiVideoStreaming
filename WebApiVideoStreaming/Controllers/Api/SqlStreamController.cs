@@ -271,7 +271,7 @@ namespace WebApiVideoStreaming.Controllers.Api
             }
         }
 
-        public static async Task<Video> GetFileStream(string name, byte[] buffer, long from)
+        public static async Task<Video> GetFileStream(string name, long blocksize, long from)
         {
             SqlConnection sqlConnection = new SqlConnection(connectionStringFS);
 
@@ -335,6 +335,7 @@ namespace WebApiVideoStreaming.Controllers.Api
                 sqlFileStream.Seek(from, SeekOrigin.Begin);
                 long totalBytes = sqlFileStream.Length;
 
+                byte[] buffer = new byte[blocksize];
                 numBytes = await sqlFileStream.ReadAsync(buffer, 0, buffer.Length);
 
                 if (numBytes != 0)

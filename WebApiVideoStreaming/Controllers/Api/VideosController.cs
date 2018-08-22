@@ -85,7 +85,7 @@ namespace WebApiVideoStreaming.Controllers
             var range = currentRangeHeader.Ranges.First();
             var start = range.From ?? 0;
 
-            var video = await SqlStreamController.GetFileStream(name, new byte[BlockSize], start);
+            var video = await SqlStreamController.GetFileStream(name, BlockSize, start);
             return video == null 
                 ? new HttpResponseMessage() { StatusCode = HttpStatusCode.BadRequest } 
                 : GetResponse(video);
