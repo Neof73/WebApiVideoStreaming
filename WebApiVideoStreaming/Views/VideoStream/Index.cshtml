@@ -83,13 +83,13 @@
 <script src='http://code.jquery.com/jquery-1.7.1.min.js'></script>
 <script>
     $(document).ready(function(){
-        $('#sendButton').attr('disabled', true);
+        $('#btnSubir').attr('disabled', true);
         if ($('#message')[0].files.length > 0)
-            $('#sendButton').attr('disabled', false);
+            $('#btnSubir').attr('disabled', false);
 
         $('#message').change(function () {
             if ($('#message')[0].files.length > 0)
-                $('#sendButton').attr('disabled', false);
+                $('#btnSubir').attr('disabled', false);
         });
 });
 </script>
