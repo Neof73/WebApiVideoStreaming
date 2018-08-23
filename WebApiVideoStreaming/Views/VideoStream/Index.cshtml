@@ -91,5 +91,9 @@
             if ($('#message')[0].files.length > 0)
                 $('#btnSubir').attr('disabled', false);
         });
-});
+    });
+
+    $('#btnSubir').on('Click', function () {
+        $('#message').val('');
+    })
 </script>
