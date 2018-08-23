@@ -20,11 +20,11 @@ namespace WebApiVideoStreaming.Controllers.Api
 
         public static async Task<List<String>> GetVideoList()
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            using (SqlConnection connection = new SqlConnection(connectionStringFS))
             {
                 List<String> list = new List<string>();
                 await connection.OpenAsync();
-                using (SqlCommand command = new SqlCommand("SELECT [textdata] FROM [Streams] ", connection))
+                using (SqlCommand command = new SqlCommand("SELECT [Name] FROM [Videos] ", connection))
                 {
                     // The reader needs to be executed with the SequentialAccess behavior to enable network streaming  
                     // Otherwise ReadAsync will buffer the entire BLOB into memory which can cause scalability issues or even OutOfMemoryExceptions  
