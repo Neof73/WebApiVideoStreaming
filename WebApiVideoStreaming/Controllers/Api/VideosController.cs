@@ -60,10 +60,18 @@ namespace WebApiVideoStreaming.Controllers
             {
                 return new HttpResponseMessage(){StatusCode = HttpStatusCode.BadRequest};
             }
-        
-            RangeHeaderValue currentRangeHeader = Request.Headers.Range;
-            var range = currentRangeHeader.Ranges.First();
-            var start = range.From ?? 0;
+
+            var start = 0L;
+            if (Request.Headers.Range != null)
+            {
+                RangeHeaderValue currentRangeHeader = Request.Headers.Range;
+                var range = currentRangeHeader.Ranges.First();
+                start = range.From ?? 0;
+            } else
+            {
+                //Return empty stream with partial content flag to get next request...
+                return GetResponse(new Video() { TotalLength = 0, Start = 0, VideoBytes = new byte[] { } });
+            }
 
             var video = await SqlStreamController.GetFileStream(name, BlockSize, start);
             return video == null 
@@ -77,13 +85,12 @@ namespace WebApiVideoStreaming.Controllers
             response.Headers.AcceptRanges.Add("bytes");
             var totalLength = video.TotalLength;
             const string videoType = "video/mp4";
-            var currentRangeHeader = Request.Headers.Range;
-            var range = currentRangeHeader.Ranges.First();
-            var start = range.From ?? 0;
-            var ends = range.To ?? (start + BlockSize - 1 > totalLength ? totalLength - 1 : start + BlockSize - 1);
+            var start = video.Start;
+            var ends = (video.Start + video.VideoBytes.Length - 1 > totalLength ? totalLength - 1 : video.Start + video.VideoBytes.Length - 1);
+
             response.Content = new ByteArrayContent(video.VideoBytes);
             response.Content.Headers.ContentLength = ends - start + 1;
-            response.Content.Headers.ContentRange = new ContentRangeHeaderValue(start, ends, totalLength);
+            response.Content.Headers.ContentRange = new ContentRangeHeaderValue(start, ends == -1 ? 0 : ends, totalLength);
             response.Content.Headers.ContentType = new MediaTypeHeaderValue(videoType);
             response.StatusCode = HttpStatusCode.PartialContent;
             return response;

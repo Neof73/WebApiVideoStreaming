@@ -156,7 +156,7 @@ namespace WebApiVideoStreaming.Controllers.Api
                         //operations that were performed on the FILESTREAM BLOB.
 
                         sqlCommand.Transaction.Commit();
-                        return new Video() { VideoBytes = buffer, TotalLength = totalBytes };
+                        return new Video() { VideoBytes = buffer, TotalLength = totalBytes, Start = from };
                     }
                     catch (System.Exception ex)
                     {

@@ -9,5 +9,6 @@ namespace WebApiVideoStreaming.Models
     {
         public long TotalLength { get; set; }
         public byte[] VideoBytes { get; set; }
+        public long Start { get; set; }
     }
 }
