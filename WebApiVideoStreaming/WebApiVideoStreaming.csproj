@@ -198,6 +198,7 @@
     <Compile Include="Models\TableVM.cs" />
     <Compile Include="Models\Video.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Support\FileStreamer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Areas\HelpPage\HelpPage.css" />

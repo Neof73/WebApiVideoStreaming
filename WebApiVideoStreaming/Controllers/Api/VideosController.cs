@@ -1,20 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Data.SqlTypes;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.Caching;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using System.Web.Caching;
 using System.Web.Http;
 using WebApiVideoStreaming.Controllers.Api;
 using WebApiVideoStreaming.Models;
+using WebApiVideoStreaming.Support;
 
 namespace WebApiVideoStreaming.Controllers
 {
@@ -59,27 +56,10 @@ namespace WebApiVideoStreaming.Controllers
 
         public async Task<HttpResponseMessage> GetStream(string name)
         {
-
-
             if (String.IsNullOrEmpty(name))
             {
                 return new HttpResponseMessage(){StatusCode = HttpStatusCode.BadRequest};
             }
-
-            
-            //if (cache[name] == null)
-            //{
-            //    videobytes = await SqlStreamController.GetBinaryValue(name);
-            //    cache.Set(name, videobytes, DateTime.Now.AddMinutes(30));
-            //} else
-            //{
-            //    videobytes = cache[name] as byte[];
-            //}
-
-            //if (videobytes == null)
-            //{
-            //    return response;
-            //}
         
             RangeHeaderValue currentRangeHeader = Request.Headers.Range;
             var range = currentRangeHeader.Ranges.First();
@@ -133,47 +113,6 @@ namespace WebApiVideoStreaming.Controllers
             var response = Request.CreateResponse(HttpStatusCode.Moved);
             response.Headers.Location = new Uri("/VideoStream", UriKind.Relative);
             return response;
-        }
-
-        class FileStreamer
-        {
-            public FileInfo FileInfo { get; set; }
-            public long Start { get; set; }
-            public long End { get; set; }
-
-            public async Task WriteToStream(Stream outputStream, HttpContent content, TransportContext context)
-            {
-                try
-                {
-                    var buffer = new byte[65536];
-                    using (var video = FileInfo.OpenRead())
-                    {
-                        if (End == -1)
-                        {
-                            End = video.Length;
-                        }
-                        var position = Start;
-                        var bytesLeft = End - Start + 1;
-                        video.Position = Start;
-                        while (position <= End)
-                        {
-                            // what should i do here?
-                            var bytesRead = video.Read(buffer, 0, (int)Math.Min(bytesLeft, buffer.Length));
-                            await outputStream.WriteAsync(buffer, 0, bytesRead);
-                            position += bytesRead;
-                            bytesLeft = End - position + 1;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // fail silently
-                }
-                finally
-                {
-                    outputStream.Close();
-                }
-            }
         }
     }
 }
