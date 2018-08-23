@@ -13,7 +13,7 @@ namespace WebApiVideoStreaming.Controllers.Api
     {
 
         // Replace the connection string if needed, for instance to connect to SQL Express: @"Server=(local)\SQLEXPRESS;Database=Demo2;Integrated Security=true"  
-        private static string connectionString = ConfigurationManager.ConnectionStrings["Streaming"].ConnectionString.ToString();
+        private static string connectionString = ConfigurationManager.ConnectionStrings["StreamingFS"].ConnectionString.ToString();
 
         //static void Main(string[] args)
         //{
@@ -75,12 +75,12 @@ namespace WebApiVideoStreaming.Controllers.Api
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 await conn.OpenAsync();
-                using (SqlCommand cmd = new SqlCommand("INSERT INTO [Streams] (textdata, bindata) VALUES (@name, @bindata)", conn))
+                using (SqlCommand cmd = new SqlCommand("INSERT INTO [Videos] (Name, Stream) VALUES (@name, @Stream)", conn))
                 {
                     // Add a parameter which uses the FileStream we just opened  
                     // Size is set to -1 to indicate "MAX"  
                     cmd.Parameters.Add("@name", SqlDbType.NVarChar, 100).Value = name;
-                    cmd.Parameters.Add("@bindata", SqlDbType.Binary, -1).Value = file;
+                    cmd.Parameters.Add("@Stream", SqlDbType.Binary, -1).Value = file;
 
                     // Send the data to the server asynchronously  
                     await cmd.ExecuteNonQueryAsync();
