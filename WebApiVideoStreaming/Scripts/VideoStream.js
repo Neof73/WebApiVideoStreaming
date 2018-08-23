@@ -7,6 +7,8 @@
             uploadProgress = $('#dvProgress');
             $(uploadProgress).attr("aria-valuemax", sizeInKb);
             $(uploadProgress).css("width", "0%");
+            $('#dvError').addClass("hidden");
+            $("#btnSubir").removeAttr("disabled");
 
             var input = $(this).parents('.input-group').find(':text'),
                 log = event.target.files[0].name;
@@ -46,8 +48,10 @@
                 location.reload();
             },
 
-            error: function (data) {
-                console.log(data);
+            error: function (jqXHR, statusText, data) {
+                console.log(jqXHR);
+                $('#pError').html("Se ha producido un error: " + data)
+                $('#dvError').removeClass("hidden");
             }
         });
 

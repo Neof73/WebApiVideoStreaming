@@ -11,6 +11,9 @@
     <div>
         <h2>Upload Videos: </h2>
         <form id="uploadForm" action="/api/videos/mediaupload" method="post" enctype="multipart/form-data">
+            <div class="alert alert-danger hidden" id="dvError">
+                <p id="pError"></p>
+            </div>
             <div class="form-group input-group">
                 <label class="input-group-btn">
                     <span class="btn btn-primary">
@@ -26,7 +29,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <button type="submit" class="btn btn-success btn-lg">Subir</button>
+                <button id="btnSubir" type="submit" class="btn btn-success btn-lg" disabled>Subir</button>
             </div>
         </form>
     </div>
