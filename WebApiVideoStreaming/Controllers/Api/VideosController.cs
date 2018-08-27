@@ -54,6 +54,16 @@ namespace WebApiVideoStreaming.Controllers
             return response;
         }
 
+        public HttpResponseMessage Get(string filename, string ext)
+        {
+            var video = new VideoStream(filename);
+
+            var response = Request.CreateResponse();
+            response.Content = new PushStreamContent((Action<Stream, HttpContent, TransportContext>) video.WriteToStream, new MediaTypeHeaderValue("video/" + ext));
+
+            return response;
+        }
+
         public async Task<HttpResponseMessage> GetStream(string name)
         {
             if (String.IsNullOrEmpty(name))
@@ -62,24 +72,24 @@ namespace WebApiVideoStreaming.Controllers
             }
 
             var start = 0L;
+            var blockSize = 0L; // BlockSize;
+            var chuncked = true;
             if (Request.Headers.Range != null)
             {
                 RangeHeaderValue currentRangeHeader = Request.Headers.Range;
                 var range = currentRangeHeader.Ranges.First();
                 start = range.From ?? 0;
-            } else
-            {
-                //Return empty stream with partial content flag to get next request...
-                return GetResponse(new Video() { TotalLength = 0, Start = 0, VideoBytes = new byte[] { } });
-            }
+                blockSize = BlockSize;
+                chuncked = false;
+            } 
 
-            var video = await SqlStreamController.GetFileStream(name, BlockSize, start);
-            return video == null 
-                ? new HttpResponseMessage() { StatusCode = HttpStatusCode.BadRequest } 
-                : GetResponse(video);
+            var video = await SqlStreamController.GetFileStream(name, blockSize, start);
+            return video == null
+                ? new HttpResponseMessage() { StatusCode = HttpStatusCode.BadRequest }
+                : GetResponse(video, chuncked);
         }
 
-        private HttpResponseMessage GetResponse(Video video)
+        private HttpResponseMessage GetResponse(Video video, bool chuncked)
         {
             var response = Request.CreateResponse();
             response.Headers.AcceptRanges.Add("bytes");
@@ -92,6 +102,7 @@ namespace WebApiVideoStreaming.Controllers
             response.Content.Headers.ContentLength = ends - start + 1;
             response.Content.Headers.ContentRange = new ContentRangeHeaderValue(start, ends == -1 ? 0 : ends, totalLength);
             response.Content.Headers.ContentType = new MediaTypeHeaderValue(videoType);
+            response.Headers.TransferEncodingChunked = chuncked;
             response.StatusCode = HttpStatusCode.PartialContent;
             return response;
         }
